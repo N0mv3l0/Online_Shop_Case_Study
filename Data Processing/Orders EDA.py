@@ -17,6 +17,11 @@ orders= spark.read.table("online.shop.orders")
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC #Converting spark dataframe to pandas
+
+# COMMAND ----------
+
 import pandas as pd
 import numpy as np
 import matplotlib as plt
@@ -24,6 +29,11 @@ import matplotlib as plt
 od= orders.toPandas()
 
 display(od)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # EDA
 
 # COMMAND ----------
 
@@ -38,6 +48,7 @@ od.describe()
 # COMMAND ----------
 
 #summary of each column in the table
+# Notice that OrderDate is a text
 
 od.info()
 
@@ -101,7 +112,7 @@ od.isnull().sum()
 
 # COMMAND ----------
 
-od.count()          #counts the number of non null values in each column
+od.count()          #counts the number of non null values in each column/ Counting the total number of rows per column.
 
 # COMMAND ----------
 
@@ -126,9 +137,18 @@ od["Status"].value_counts()
 od['OrderDate'] = pd.to_datetime(od['OrderDate'])
 
 # Step 2: Extract the componentsod['year'] = od['OrderDate'].dt.year
+od['year'] = od['OrderDate'].dt.year
 od['month'] = od['OrderDate'].dt.month
 od['day'] = od['OrderDate'].dt.day
 od['day_name'] = od['OrderDate'].dt.day_name()
+
+# COMMAND ----------
+
+import numpy as np
+
+# Checks the text names directly
+od['day_type'] = np.where(od['day_name'].isin(['Saturday', 'Sunday']), 'Weekend', 'Weekday')
+
 
 # COMMAND ----------
 
@@ -148,13 +168,102 @@ od.shape
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC # Orders + Customers = cts_od
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # 1. Run the customer notebook to load the 'cts' dataframe into this session
 
 # COMMAND ----------
 
-# MAGIC %run.//Workspace/Users/nomvelogcaba@gmail.com/Online_shop/Online_Shop_Case_Study/Data Processing/Customers EDA
+# MAGIC %run "/Users/nomvelogcaba@gmail.com/Online_shop/Online_Shop_Case_Study/Data Processing/Customers EDA"
+# MAGIC
 
 # COMMAND ----------
 
-. Use pandas merge to join them directly
-final_pandas_df = od.merge(cts, on="CustomerID", how="inner")
+# Now 'cts' is loaded from the other notebook, and you can merge it directly
+cts_od = od.merge(cts, on="CustomerID", how="inner")
+
+
+# COMMAND ----------
+
+display(cts_od)
+
+# COMMAND ----------
+
+cts_od.shape
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #cts_od + products = cts_od_prd
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Run the products notebook to load the 'prd' dataframe into this session
+
+# COMMAND ----------
+
+# MAGIC %run "/Users/nomvelogcaba@gmail.com/Online_shop/Online_Shop_Case_Study/Data Processing/Products EDA"
+
+# COMMAND ----------
+
+# Now 'prd' is loaded from the other notebook, and you can merge it directly
+cts_od_prd = cts_od.merge(prd, on="ProductID", how="inner")
+
+# COMMAND ----------
+
+display(cts_od_prd)
+
+# COMMAND ----------
+
+cts_od_prd.shape
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # cts_od_prd + pmt = final_merged
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #Run the payments notebook to load the 'pmt' dataframe into this session
+
+# COMMAND ----------
+
+# MAGIC %run "/Users/nomvelogcaba@gmail.com/Online_shop/Online_Shop_Case_Study/Data Processing/Payments EDA"
+
+# COMMAND ----------
+
+# Now 'prd' is loaded from the other notebook, and you can merge it directly
+final_merged = cts_od_prd.merge(pmt, on="OrderID", how="inner")
+
+# COMMAND ----------
+
+display(final_merged)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Final_merged EDA 
+
+# COMMAND ----------
+
+final_merged.shape
+
+# COMMAND ----------
+
+import numpy as np
+
+# Calculate revenue for each order
+final_merged['Revenue'] = final_merged['Quantity'] * final_merged['UnitPrice'] * (1 - final_merged['Discount'])
+
+
+# COMMAND ----------
+
+display(final_merged)
+
+# COMMAND ----------
+
